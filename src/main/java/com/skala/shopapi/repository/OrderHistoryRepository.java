@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface OrderHistoryRepository extends JpaRepository<OrderHistory, Long> {
 
     List<OrderHistory> findByCustomer_CustomerIdOrderByOrderedAtDesc(String customerId);
+
+    boolean existsByCustomer_CustomerIdAndProduct_IdAndType(String customerId, Long productId, String type);
 }

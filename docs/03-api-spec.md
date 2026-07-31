@@ -98,7 +98,7 @@
 | Method | URI | 설명 | 요청 예시 | 에러 |
 |---|---|---|---|---|
 | GET | `/api/products/{productId}/reviews` | 리뷰 목록 + 평균 평점 | - | - |
-| POST | `/api/products/{productId}/reviews` | 리뷰 작성 | `{"rating":5,"comment":"좋아요"}` | `ParameterException`(rating 1~5) |
+| POST | `/api/products/{productId}/reviews` | 리뷰 작성 (해당 상품 구매 이력 필요) | `{"rating":5,"comment":"좋아요"}` | `ParameterException`(rating 1~5), `PURCHASE_REQUIRED`(403, 구매 이력 없음) |
 | DELETE | `/api/reviews/{reviewId}` | 리뷰 삭제(작성자만) | - | `NOT_AUTHENTICATED`(401) |
 
 ### 3-4 위시리스트 완료 시

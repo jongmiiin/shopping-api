@@ -10,7 +10,8 @@ public enum Error {
     DATA_DUPLICATED(HttpStatus.CONFLICT, "Data duplicated"),
     INSUFFICIENT_FUNDS(HttpStatus.BAD_REQUEST, "Insufficient funds"),
     INSUFFICIENT_QUANTITY(HttpStatus.BAD_REQUEST, "Insufficient quantity"),
-    NOT_AUTHENTICATED(HttpStatus.UNAUTHORIZED, "Not authenticated");
+    NOT_AUTHENTICATED(HttpStatus.UNAUTHORIZED, "Not authenticated"),
+    PURCHASE_REQUIRED(HttpStatus.FORBIDDEN, "Purchase required before writing a review");
 
     private final HttpStatus httpStatus;
     private final String message;

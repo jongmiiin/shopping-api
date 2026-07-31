@@ -236,7 +236,9 @@
 - `repository/ReviewRepository`: `findByProduct_Id(Long productId)`,
   `@Query("select avg(r.rating) from Review r where r.product.id = :productId") Double findAverageRatingByProductId(Long productId)`
 - `service/ReviewService`: `createReview(Long productId, ReviewRequest req, HttpServletRequest request)` —
-  `rating`이 1~5 밖이면 `ParameterException("rating")`; `getReviewsByProduct(Long productId)` — 평균 평점 포함;
+  `rating`이 1~5 밖이면 `ParameterException("rating")`; **`orderHistoryRepository.existsByCustomer_CustomerIdAndProduct_IdAndType(customerId, productId, OrderHistory.TYPE_ORDER)`로 구매 이력 확인, 없으면 `ResponseException(Error.PURCHASE_REQUIRED)`(403)** —
+  주문을 취소했더라도 `OrderHistory`의 `ORDER` 레코드 자체는 남으므로 리뷰 작성은 계속 허용됨;
+  `getReviewsByProduct(Long productId)` — 평균 평점 포함;
   `deleteReview(Long reviewId, HttpServletRequest request)` — 작성자 customerId 불일치 시 `NOT_AUTHENTICATED`
 - `controller/ReviewController`: `GET /api/products/{productId}/reviews`, `POST /api/products/{productId}/reviews`,
   `DELETE /api/reviews/{reviewId}`
