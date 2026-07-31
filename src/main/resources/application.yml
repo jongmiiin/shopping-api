@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: shopapi
+  datasource:
+    url: jdbc:h2:mem:shopapi
+  jpa:
+    hibernate:
+      ddl-auto: update
+    defer-datasource-initialization: true
+    show-sql: true
+  sql:
+    init:
+      mode: always
+  h2:
+    console:
+      enabled: true
+
+server:
+  port: 8080
