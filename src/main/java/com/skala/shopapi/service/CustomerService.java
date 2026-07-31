@@ -4,16 +4,19 @@ import com.skala.shopapi.common.PagedList;
 import com.skala.shopapi.common.Response;
 import com.skala.shopapi.common.SessionHandler;
 import com.skala.shopapi.dto.CustomerSession;
+import com.skala.shopapi.dto.OrderHistoryDto;
 import com.skala.shopapi.dto.OrderItemDto;
 import com.skala.shopapi.dto.OrderListDto;
 import com.skala.shopapi.dto.OrderRequest;
 import com.skala.shopapi.entity.Customer;
+import com.skala.shopapi.entity.OrderHistory;
 import com.skala.shopapi.entity.OrderItem;
 import com.skala.shopapi.entity.Product;
 import com.skala.shopapi.exception.Error;
 import com.skala.shopapi.exception.ParameterException;
 import com.skala.shopapi.exception.ResponseException;
 import com.skala.shopapi.repository.CustomerRepository;
+import com.skala.shopapi.repository.OrderHistoryRepository;
 import com.skala.shopapi.repository.OrderItemRepository;
 import com.skala.shopapi.repository.ProductRepository;
 import com.skala.shopapi.tools.StringUtil;
@@ -36,6 +39,7 @@ public class CustomerService {
     private final CustomerRepository customerRepository;
     private final ProductRepository productRepository;
     private final OrderItemRepository orderItemRepository;
+    private final OrderHistoryRepository orderHistoryRepository;
     private final SessionHandler sessionHandler;
 
     public Response<PagedList<Customer>> getAllCustomers(int offset, int count) {
@@ -141,6 +145,9 @@ public class CustomerService {
             orderItem.setQuantity(orderItem.getQuantity() + order.getQuantity());
         }
 
+        orderHistoryRepository.save(new OrderHistory(customer, product, order.getQuantity(), cost,
+                OrderHistory.TYPE_ORDER));
+
         return Response.success(customer);
     }
 
@@ -170,6 +177,44 @@ public class CustomerService {
         double refund = product.getProductPrice() * order.getQuantity();
         customer.setCustomerPoint(customer.getCustomerPoint() + refund);
 
+        orderHistoryRepository.save(new OrderHistory(customer, product, order.getQuantity(), refund,
+                OrderHistory.TYPE_CANCEL));
+
         return Response.success(customer);
+    }
+
+    @Transactional(readOnly = true)
+    public Response<List<OrderHistoryDto>> getOrderHistory(String customerId) {
+        customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResponseException(Error.DATA_NOT_FOUND));
+
+        List<OrderHistoryDto> history = orderHistoryRepository
+                .findByCustomer_CustomerIdOrderByOrderedAtDesc(customerId).stream()
+                .map(this::toOrderHistoryDto)
+                .collect(Collectors.toList());
+        return Response.success(history);
+    }
+
+    @Transactional(readOnly = true)
+    public Response<OrderHistoryDto> getOrderHistoryDetail(String customerId, Long orderId) {
+        customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResponseException(Error.DATA_NOT_FOUND));
+
+        OrderHistory orderHistory = orderHistoryRepository.findById(orderId)
+                .filter(history -> history.getCustomer().getCustomerId().equals(customerId))
+                .orElseThrow(() -> new ResponseException(Error.DATA_NOT_FOUND));
+
+        return Response.success(toOrderHistoryDto(orderHistory));
+    }
+
+    private OrderHistoryDto toOrderHistoryDto(OrderHistory history) {
+        return OrderHistoryDto.builder()
+                .id(history.getId())
+                .productName(history.getProduct().getProductName())
+                .quantity(history.getQuantity())
+                .amount(history.getAmount())
+                .type(history.getType())
+                .orderedAt(history.getOrderedAt())
+                .build();
     }
 }

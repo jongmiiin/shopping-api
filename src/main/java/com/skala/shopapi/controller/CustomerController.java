@@ -3,6 +3,7 @@ package com.skala.shopapi.controller;
 import com.skala.shopapi.common.PagedList;
 import com.skala.shopapi.common.Response;
 import com.skala.shopapi.dto.CustomerSession;
+import com.skala.shopapi.dto.OrderHistoryDto;
 import com.skala.shopapi.dto.OrderListDto;
 import com.skala.shopapi.dto.OrderRequest;
 import com.skala.shopapi.entity.Customer;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -79,5 +81,18 @@ public class CustomerController {
     @PostMapping("/cancel")
     public Response<Customer> cancelOrder(@RequestBody OrderRequest order, HttpServletRequest request) {
         return customerService.cancelOrder(order, request);
+    }
+
+    @Operation(summary = "주문/취소 이력 목록 조회 (시간 역순)")
+    @GetMapping("/{customerId}/orders")
+    public Response<List<OrderHistoryDto>> getOrderHistory(@PathVariable String customerId) {
+        return customerService.getOrderHistory(customerId);
+    }
+
+    @Operation(summary = "주문/취소 이력 상세 조회")
+    @GetMapping("/{customerId}/orders/{orderId}")
+    public Response<OrderHistoryDto> getOrderHistoryDetail(@PathVariable String customerId,
+            @PathVariable Long orderId) {
+        return customerService.getOrderHistoryDetail(customerId, orderId);
     }
 }
