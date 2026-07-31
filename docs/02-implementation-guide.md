@@ -261,6 +261,14 @@
 - `controller/CategoryController` (`/api/categories`): 기본 CRUD (Product 패턴과 동일)
 - `ProductController` 확장: `GET /api/products/search?keyword=&categoryId=` — 파라미터 조합에 따라 적절한
   repository 메서드 분기 호출
+- 상품에 카테고리를 연결할 방법이 없으면 검색 자체를 테스트할 수 없으므로, `ProductService.createProduct`/
+  `updateProduct`가 요청 바디의 `category.id`를 받으면 `categoryRepository.findById`로 실제 엔티티를 조회해
+  연결한다(없는 id면 `DATA_NOT_FOUND`). `updateProduct`는 요청에 `category`가 없으면 기존 값을 유지한다.
+- **버그 및 수정 (카테고리 삭제 시 FK 제약 위반)**: 상품이 참조 중인 카테고리를 삭제하면 H2가
+  `Referential integrity constraint violation`을 던지고 이게 `GlobalExceptionHandler`의 catch-all에 걸려
+  500으로 나갔다. `CategoryService.deleteCategory`에서 삭제 전에 `productRepository.findByCategory_Id`로
+  연결된 상품을 모두 찾아 `category`를 `null`로 풀어준 뒤 카테고리를 삭제하도록 수정(`@Transactional` 추가).
+  이를 위해 `ProductRepository`에 페이징 없는 `List<Product> findByCategory_Id(Long)` 오버로드를 추가함.
 
 ---
 

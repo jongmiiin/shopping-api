@@ -56,4 +56,14 @@ public class ProductController {
     public Response<Void> deleteProduct(@RequestBody Product product) {
         return productService.deleteProduct(product);
     }
+
+    @Operation(summary = "상품 검색 (키워드/카테고리 조합)")
+    @GetMapping("/search")
+    public Response<PagedList<Product>> searchProducts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "0") Integer offset,
+            @RequestParam(defaultValue = "10") Integer count) {
+        return productService.searchProducts(keyword, categoryId, offset, count);
+    }
 }
