@@ -197,11 +197,26 @@
   `Response<Void> addToCart(OrderRequest req, HttpServletRequest request)` (기존 항목 있으면 수량 누적),
   `Response<Void> removeFromCart(OrderRequest req, HttpServletRequest request)`,
   `Response<List<CartItemDto>> getCart(HttpServletRequest request)`,
-  `@Transactional Response<Void> checkout(HttpServletRequest request, HttpServletResponse response)` —
-  장바구니 항목을 순회하며 `CustomerService.placeOrder`와 동일한 검증·차감 로직 수행 후 장바구니 비움
-  (중복 방지를 위해 공통 검증 로직은 `CustomerService`에서 `protected`/패키지 접근 메서드로 추출해 재사용 검토)
+  `@Transactional Response<Customer> checkout(HttpServletRequest request)` — 장바구니 항목을 순회하며
+  `CustomerService.placeOrder`를 그대로 호출해 재사용(중복 로직 없이) 후 장바구니 비움
 - `controller/CartController` (`/api/customers/cart`): `GET`, `POST`, `DELETE`, `POST /checkout`
 - `dto/CartItemDto`: `Long productId`, `String productName`, `Double productPrice`, `Integer quantity`
+- **버그 및 수정 (Hibernate 프록시 직렬화 노출)**: `checkout()`처럼 같은 트랜잭션 안에서 지연 로딩 연관관계를
+  먼저 건드린 뒤 같은 ID로 `repository.findById()`를 다시 호출하면, 영속성 컨텍스트가 이전에 만든 Hibernate
+  프록시(ByteBuddy 서브클래스) 인스턴스를 그대로 반환한다. 이 프록시를 Jackson으로 직렬화하면
+  `hibernateLazyInitializer` 같은 내부 필드가 JSON에 그대로 노출된다. `jackson-datatype-hibernate6`로 고치려
+  했으나 Hibernate 7(이 프로젝트가 쓰는 버전)과 호환되지 않아 사용 불가 — 대신 `config/JacksonConfig`에서
+  `Object.class`에 `@JsonIgnoreProperties({"hibernateLazyInitializer","handler"})` 믹스인을 전역 등록해 해결.
+  (참고: Boot 4는 Jackson 3 기반이라 커스터마이저 인터페이스도
+  `org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer`이고 빌더 타입은
+  `tools.jackson.databind.json.JsonMapper.Builder`다 — 예전 `Jackson2ObjectMapperBuilderCustomizer`는 없음)
+- **버그 및 수정 (고객 존재 확인 누락)**: `CartService.getCart()`가 `addToCart`/`removeFromCart`/`checkout`과
+  달리 `customerRepository.findById()`로 고객 존재를 확인하지 않고 바로 `cartItemRepository.findByCustomer_CustomerId`만
+  호출했다. H2가 인메모리라 서버 재시작 시 고객 데이터가 사라지는데, 브라우저에 만료 없는 예전 `bff-access` 쿠키가
+  남아있으면 그 쿠키가 가리키는 고객이 더 이상 존재하지 않아도 `getCart`는 빈 배열과 함께 200을 반환해버리는 반면
+  담기/제거/체크아웃은 정상적으로 404를 반환하는 불일치가 있었다. `getCart`에도 동일한 고객 존재 검증을 추가해 해결.
+  (근본 원인인 "쿠키에 만료·서명 검증이 없어 예전 로그인 세션이 영구적으로 유효한 것처럼 보이는 문제" 자체는
+  4순위 JWT에서 정식으로 해결 예정 — 지금은 임시 SessionHandler의 알려진 한계로 남겨둠)
 
 ### 3-2 주문 상세 및 내역 관리
 - `entity/OrderHistory` (`@Entity @Table(name="order_history")`): `Long id`(IDENTITY),
